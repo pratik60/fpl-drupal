@@ -1,6 +1,6 @@
 <?php
 
-$gw = 2;
+$gw = 26;
 $groups[0] = array('Atlanta','As Monacco','Elche','Cheslea');
 $gw2[0] = array('18763','10294','159599','306560');
 
@@ -13,17 +13,6 @@ $gw2[2] = array('8486','23093','63025','4491');
 $groups[3] = array('Athletic Bilabo','KR','Hull','Borussia');
 $gw2[3] = array('57410','239','179','6694');
 
-$groups[4] = array('Toulouse','Tottenham Hostpur','Malaga','Sporting');
-$gw2[4] = array('6887','178428','150487','58');
-
-$groups[5] = array('Hellas','VfB','FC Basel','Everton');
-$gw2[5] = array('9734','8251','44','283');
-
-$groups[6] = array('Hertha','Sevilla','Lazio','Montpellier');
-$gw2[6] = array('169','1588','41','550');
-
-$groups[7] = array('Feyenoord','Barcelona','Juventus','Bayern Munich');
-$gw2[7] = array('6015','1166','84','12438');
 
 echo '<table>';
 foreach ($groups as $group_key=>$group) {
