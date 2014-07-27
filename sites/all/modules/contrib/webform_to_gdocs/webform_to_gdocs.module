@@ -1,0 +1,122 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function webform_to_gdocs_menu() {
+  $items['admin/config/content/webform-to-gdocs'] = array(
+    'title' => 'Webform to Google Docs',
+    'description' => 'Configure Webform to Google Docs settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_to_gdocs_configure_form'),
+    'access arguments' => array('administer webform_to_gdocs'),
+    'file' => 'includes/webform_to_gdocs.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['node/%webform_menu/webform/gdocs'] = array(
+    'title' => 'Google Docs',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_to_gdocs_attach_form', 1),
+    'access callback' => 'user_access',
+    'access arguments' => array('attach webform to gdocs'),
+    'file' => 'includes/webform_to_gdocs.attach.inc',
+    'weight' => 10,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function webform_to_gdocs_permission() {
+  return array(
+    'administer webform_to_gdocs' => array(
+      'title' => t('Administer Webform to GDocs'),
+      'description' => t(''),
+    ),
+    'attach webform to gdocs' => array(
+      'title' => t('Attach Webforms to GDocs'),
+      'description' => t(''),
+    ),
+  );
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function webform_to_gdocs_node_delete($node) {
+  // Delete any webform_to_gdocs references for this node.
+  db_query("DELETE FROM {webform_to_gdocs_webforms} WHERE nid = :nid", array(':nid' => $node->nid));
+}
+
+/**
+ * Callbacks for a Webform submission.
+ */
+function webform_to_gdocs_webform_submission_insert($node, $submission) {
+  // Is this Webform attached to a Google Doc?
+  $result = db_query("SELECT * FROM {webform_to_gdocs_webforms} gw WHERE gw.nid = :nid LIMIT 1", array(':nid' => $node->nid))->fetchAssoc();
+
+  if (!count($result)) {
+    return;
+  }
+
+  switch ($result['gdoc_type']) {
+
+    case 'document':
+      drupal_set_message('Documents are not implemented yet.');
+      break;
+
+    case 'spreadsheet':
+      require('Google_Spreadsheet.php');
+      if (!_webform_to_gdocs_helper_loadZendGdata()) {
+        return;
+      }
+
+      try {
+        $spreadsheet = new Google_Spreadsheet(variable_get('webform_to_gdocs_username', ''), variable_get('webform_to_gdocs_password', ''));
+      } catch (Exception $e) {
+        watchdog('webform_to_gdocs', $e->getMessage());
+        drupal_set_message('Unable to authenticate to Google Docs. See error log.', 'error');
+      }
+
+      try {
+        $spreadsheet->useSpreadsheet($result['gdoc_name']);
+        $spreadsheet->useWorksheet($result['gdoc_sheet']);
+        $google_row = array();
+        foreach ($submission->data as $key => $value) {
+          $spreadsheet_column = $node->webform['components'][$key]['form_key'];
+          $google_row[$spreadsheet_column] = reset($value['value']);
+        }
+        $spreadsheet->addRow($google_row);
+      } catch (Exception $e) {
+        watchdog('webform_to_gdocs', $e->getMessage());
+      }
+      break;
+
+  }
+}
+
+/**
+ * Helper function used to include the Zend GData library on demand.
+ */
+function _webform_to_gdocs_helper_loadZendGdata() {
+  $library_path = variable_get('webform_to_gdocs_zend_gdata_location', '');
+  if (strlen($library_path) > 0) {
+    // Set Zend library include path.
+    set_include_path(get_include_path() . PATH_SEPARATOR . realpath('.') . '/' . $library_path . '/library');
+    // Include the library.
+    if (file_exists(realpath('.') . '/' . $library_path . '/library/Zend/Gdata.php')) {
+      require_once(realpath('.') . '/' . $library_path . '/library/Zend/Gdata.php');
+      return TRUE;
+    }
+  }
+
+  // Zend GData library wasn't found.
+  if (user_access('administer webform_to_gdocs')) {
+    drupal_set_message("Could not find the Zend Gdata library. " . l("Configure Webform to GDocs", 'admin/config/content/webform-to-gdocs') . " to set the correct path to the library.", 'error');
+  }
+  return FALSE;
+}
