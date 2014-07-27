@@ -1,0 +1,20 @@
+/**
+ * This file should get overwritten if Method 1 is used. If Method 2 is chosen,
+ * remove this comment and start adding your styles to this file.
+ */
+.node-type-partner h1.page-header, .node-type-ojs h1.page-header, .node-type-embed-form h1.page-header, .node-type-full-website h1.page-header, .node-type-one-pager h1.page-header{
+  display : none;
+}
+
+#user-login-form .first.last {
+  display : none;
+}
+
+.not-logged-in .tabs--primary li:nth-child(2) {
+  display: none;
+}
+
+.content .field {
+  clear: both;
+  padding-bottom: 15px;
+}
